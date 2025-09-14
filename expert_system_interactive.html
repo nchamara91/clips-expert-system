@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expert System Interactive Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        button {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .graph-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node-label {
+            font-size: 12px;
+            font-weight: bold;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        .edge {
+            stroke: #999;
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Electrical Appliance Expert System Visualization</h1>
+        
+        <div class="controls">
+            <button onclick="showRuleGraph()">Rule Dependencies</button>
+            <button onclick="showKnowledgeBase()">Knowledge Base</button>
+            <button onclick="showDecisionTree()">Decision Tree</button>
+            <button onclick="showConfidenceNetwork()">Confidence Network</button>
+        </div>
+        
+        <div class="graph-container" id="graph"></div>
+        
+        <div class="legend" id="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF6B6B;"></div>
+                <span>Fan Rules</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4ECDC4;"></div>
+                <span>Washing Machine Rules</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #45B7D1;"></div>
+                <span>TV Rules</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #96CEB4;"></div>
+                <span>Control Rules</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFEAA7;"></div>
+                <span>Explanation Rules</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Graph data
+        const ruleGraphData = {
+            nodes: [
+                {id: "start-system", group: "control", type: "control"},
+                {id: "select-appliance", group: "control", type: "control"},
+                
+                // Fan nodes
+                {id: "gather-fan-symptoms", group: "fan", type: "symptom"},
+                {id: "fan-no-power", group: "fan", type: "diagnosis", confidence: 0.8},
+                {id: "fan-noise", group: "fan", type: "diagnosis", confidence: 0.87},
+                {id: "fan-slow", group: "fan", type: "diagnosis", confidence: 0.82},
+                {id: "fan-vibration", group: "fan", type: "diagnosis", confidence: 0.82},
+                {id: "fan-overheat", group: "fan", type: "diagnosis", confidence: 0.77},
+                
+                // Washing machine nodes
+                {id: "gather-washing-symptoms", group: "washing", type: "symptom"},
+                {id: "washing-no-start", group: "washing", type: "diagnosis", confidence: 0.83},
+                {id: "washing-no-agitation", group: "washing", type: "diagnosis", confidence: 0.85},
+                {id: "washing-no-drain", group: "washing", type: "diagnosis", confidence: 0.8},
+                {id: "washing-noise", group: "washing", type: "diagnosis", confidence: 0.85},
+                {id: "washing-overload", group: "washing", type: "diagnosis", confidence: 0.77},
+                
+                // TV nodes
+                {id: "gather-tv-symptoms", group: "tv", type: "symptom"},
+                {id: "tv-no-power", group: "tv", type: "diagnosis", confidence: 0.87},
+                {id: "tv-no-picture", group: "tv", type: "diagnosis", confidence: 0.8},
+                {id: "tv-no-sound", group: "tv", type: "diagnosis", confidence: 0.85},
+                {id: "tv-distortion", group: "tv", type: "diagnosis", confidence: 0.75},
+                {id: "tv-shutdown", group: "tv", type: "diagnosis", confidence: 0.77},
+                
+                // Explanation nodes
+                {id: "display-results", group: "explanation", type: "explanation"},
+                {id: "handle-why", group: "explanation", type: "explanation"},
+                {id: "handle-how", group: "explanation", type: "explanation"}
+            ],
+            links: [
+                // Control flow
+                {source: "start-system", target: "select-appliance"},
+                {source: "select-appliance", target: "gather-fan-symptoms"},
+                {source: "select-appliance", target: "gather-washing-symptoms"},
+                {source: "select-appliance", target: "gather-tv-symptoms"},
+                
+                // Fan flow
+                {source: "gather-fan-symptoms", target: "fan-no-power"},
+                {source: "gather-fan-symptoms", target: "fan-noise"},
+                {source: "gather-fan-symptoms", target: "fan-slow"},
+                {source: "gather-fan-symptoms", target: "fan-vibration"},
+                {source: "gather-fan-symptoms", target: "fan-overheat"},
+                
+                // Washing machine flow
+                {source: "gather-washing-symptoms", target: "washing-no-start"},
+                {source: "gather-washing-symptoms", target: "washing-no-agitation"},
+                {source: "gather-washing-symptoms", target: "washing-no-drain"},
+                {source: "gather-washing-symptoms", target: "washing-noise"},
+                {source: "gather-washing-symptoms", target: "washing-overload"},
+                
+                // TV flow
+                {source: "gather-tv-symptoms", target: "tv-no-power"},
+                {source: "gather-tv-symptoms", target: "tv-no-picture"},
+                {source: "gather-tv-symptoms", target: "tv-no-sound"},
+                {source: "gather-tv-symptoms", target: "tv-distortion"},
+                {source: "gather-tv-symptoms", target: "tv-shutdown"},
+                
+                // To explanation system
+                {source: "fan-no-power", target: "display-results"},
+                {source: "washing-no-start", target: "display-results"},
+                {source: "tv-no-power", target: "display-results"},
+                {source: "display-results", target: "handle-why"},
+                {source: "display-results", target: "handle-how"}
+            ]
+        };
+        
+        // Color scheme
+        const colors = {
+            fan: "#FF6B6B",
+            washing: "#4ECDC4", 
+            tv: "#45B7D1",
+            control: "#96CEB4",
+            explanation: "#FFEAA7"
+        };
+        
+        // SVG setup
+        const width = 1160;
+        const height = 580;
+        
+        const svg = d3.select("#graph")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+            
+        // Add arrowhead marker
+        svg.append("defs").append("marker")
+            .attr("id", "arrowhead")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 15)
+            .attr("refY", 0)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .attr("fill", "#999");
+        
+        // Tooltip
+        const tooltip = d3.select("#tooltip");
+        
+        // Force simulation
+        let simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(30));
+        
+        function showRuleGraph() {
+            clearGraph();
+            drawGraph(ruleGraphData);
+        }
+        
+        function clearGraph() {
+            svg.selectAll("*").remove();
+            
+            // Re-add arrowhead marker
+            svg.append("defs").append("marker")
+                .attr("id", "arrowhead")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 15)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#999");
+        }
+        
+        function drawGraph(data) {
+            // Links
+            const link = svg.append("g")
+                .selectAll("line")
+                .data(data.links)
+                .enter()
+                .append("line")
+                .attr("class", "edge");
+            
+            // Nodes
+            const node = svg.append("g")
+                .selectAll("circle")
+                .data(data.nodes)
+                .enter()
+                .append("circle")
+                .attr("class", "node")
+                .attr("r", d => d.type === "diagnosis" ? 15 : 12)
+                .attr("fill", d => colors[d.group])
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2)
+                .on("mouseover", function(event, d) {
+                    tooltip.style("opacity", 1)
+                        .html(`<strong>${d.id}</strong><br/>
+                               Type: ${d.type}<br/>
+                               ${d.confidence ? `Confidence: ${d.confidence}` : ''}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("opacity", 0);
+                })
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+            
+            // Labels
+            const label = svg.append("g")
+                .selectAll("text")
+                .data(data.nodes)
+                .enter()
+                .append("text")
+                .attr("class", "node-label")
+                .text(d => d.id.replace(/-/g, ' '));
+            
+            // Simulation
+            simulation.nodes(data.nodes);
+            simulation.force("link").links(data.links);
+            simulation.restart();
+            
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+                    
+                label
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y + 25);
+            });
+        }
+        
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function showKnowledgeBase() {
+            clearGraph();
+            const kbData = {
+                nodes: [
+                    {id: "Templates", group: "control", type: "template"},
+                    {id: "Facts", group: "fan", type: "fact"},
+                    {id: "Rules", group: "washing", type: "rule"},
+                    {id: "Inference Engine", group: "tv", type: "engine"},
+                    {id: "Explanations", group: "explanation", type: "explanation"}
+                ],
+                links: [
+                    {source: "Templates", target: "Facts"},
+                    {source: "Facts", target: "Rules"},
+                    {source: "Rules", target: "Inference Engine"},
+                    {source: "Inference Engine", target: "Explanations"}
+                ]
+            };
+            drawGraph(kbData);
+        }
+        
+        function showDecisionTree() {
+            clearGraph();
+            const treeData = {
+                nodes: [
+                    {id: "Fan Symptoms", group: "control", type: "root"},
+                    {id: "No Power", group: "fan", type: "symptom"},
+                    {id: "Power at Outlet?", group: "fan", type: "question"},
+                    {id: "Power Failure (0.9)", group: "fan", type: "diagnosis", confidence: 0.9},
+                    {id: "Wires OK?", group: "fan", type: "question"},
+                    {id: "Loose Wiring (0.8)", group: "fan", type: "diagnosis", confidence: 0.8},
+                    {id: "Motor Failure (0.7)", group: "fan", type: "diagnosis", confidence: 0.7}
+                ],
+                links: [
+                    {source: "Fan Symptoms", target: "No Power"},
+                    {source: "No Power", target: "Power at Outlet?"},
+                    {source: "Power at Outlet?", target: "Power Failure (0.9)"},
+                    {source: "Power at Outlet?", target: "Wires OK?"},
+                    {source: "Wires OK?", target: "Loose Wiring (0.8)"},
+                    {source: "Wires OK?", target: "Motor Failure (0.7)"}
+                ]
+            };
+            drawGraph(treeData);
+        }
+        
+        function showConfidenceNetwork() {
+            clearGraph();
+            const confData = {
+                nodes: [
+                    {id: "High Conf (0.9+)", group: "explanation", type: "diagnosis", confidence: 0.95},
+                    {id: "Medium-High (0.8-0.89)", group: "washing", type: "diagnosis", confidence: 0.85},
+                    {id: "Medium (0.7-0.79)", group: "tv", type: "diagnosis", confidence: 0.75},
+                    {id: "Symptoms", group: "control", type: "symptom"},
+                    {id: "Measurements", group: "fan", type: "measurement"}
+                ],
+                links: [
+                    {source: "Symptoms", target: "High Conf (0.9+)"},
+                    {source: "Symptoms", target: "Medium-High (0.8-0.89)"},
+                    {source: "Symptoms", target: "Medium (0.7-0.79)"},
+                    {source: "Measurements", target: "High Conf (0.9+)"},
+                    {source: "Measurements", target: "Medium-High (0.8-0.89)"}
+                ]
+            };
+            drawGraph(confData);
+        }
+        
+        // Initialize with rule graph
+        showRuleGraph();
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+# Expert System Graph in DOT format
+# Use with Graphviz: dot -Tpng expert_system.dot -o expert_system.png
+
+digraph ExpertSystem {
+    # Graph attributes
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Arial"];
+    edge [fontname="Arial", fontsize=10];
+    
+    # Define color scheme
+    subgraph cluster_control {
+        label="Control Layer";
+        style=filled;
+        color=lightgrey;
+        node [fillcolor=lightblue];
+        
+        start [label="Start System"];
+        select [label="Select Appliance"];
+        start -> select;
+    }
+    
+    # Fan subsystem
+    subgraph cluster_fan {
+        label="Fan Diagnosis";
+        style=filled;
+        color=lightcoral;
+        node [fillcolor=mistyrose];
+        
+        fan_symptoms [label="Gather Fan\nSymptoms"];
+        fan_no_power [label="No Power\nDiagnosis\n(0.7-0.9)"];
+        fan_noise [label="Unusual Noise\nDiagnosis\n(0.85-0.9)"];
+        fan_slow [label="Slow Running\nDiagnosis\n(0.8-0.85)"];
+        fan_vibration [label="Excessive Vibration\nDiagnosis\n(0.75-0.9)"];
+        fan_overheat [label="Overheating\nDiagnosis\n(0.7-0.85)"];
+        
+        fan_symptoms -> fan_no_power;
+        fan_symptoms -> fan_noise;
+        fan_symptoms -> fan_slow;
+        fan_symptoms -> fan_vibration;
+        fan_symptoms -> fan_overheat;
+    }
+    
+    # Washing Machine subsystem
+    subgraph cluster_washing {
+        label="Washing Machine Diagnosis";
+        style=filled;
+        color=lightseagreen;
+        node [fillcolor=paleturquoise];
+        
+        wash_symptoms [label="Gather Washing\nMachine Symptoms"];
+        wash_no_start [label="No Start\nDiagnosis\n(0.7-0.95)"];
+        wash_no_agitation [label="No Agitation\nDiagnosis\n(0.8-0.9)"];
+        wash_no_drain [label="No Drain\nDiagnosis\n(0.75-0.85)"];
+        wash_noise [label="Loud Noise\nDiagnosis\n(0.8-0.9)"];
+        wash_overload [label="Electrical Overload\nDiagnosis\n(0.7-0.85)"];
+        
+        wash_symptoms -> wash_no_start;
+        wash_symptoms -> wash_no_agitation;
+        wash_symptoms -> wash_no_drain;
+        wash_symptoms -> wash_noise;
+        wash_symptoms -> wash_overload;
+    }
+    
+    # TV subsystem
+    subgraph cluster_tv {
+        label="TV Diagnosis";
+        style=filled;
+        color=lightskyblue;
+        node [fillcolor=aliceblue];
+        
+        tv_symptoms [label="Gather TV\nSymptoms"];
+        tv_no_power [label="No Power\nDiagnosis\n(0.8-0.95)"];
+        tv_no_picture [label="No Picture\nDiagnosis\n(0.75-0.85)"];
+        tv_no_sound [label="No Sound\nDiagnosis\n(0.75-0.95)"];
+        tv_distortion [label="Picture Distortion\nDiagnosis\n(0.7-0.8)"];
+        tv_shutdown [label="Random Shutdown\nDiagnosis\n(0.7-0.85)"];
+        
+        tv_symptoms -> tv_no_power;
+        tv_symptoms -> tv_no_picture;
+        tv_symptoms -> tv_no_sound;
+        tv_symptoms -> tv_distortion;
+        tv_symptoms -> tv_shutdown;
+    }
+    
+    # Explanation subsystem
+    subgraph cluster_explanation {
+        label="Explanation System";
+        style=filled;
+        color=lightyellow;
+        node [fillcolor=cornsilk];
+        
+        display_results [label="Display Diagnosis\nResults"];
+        handle_why [label="Handle 'Why'\nQuestions"];
+        handle_how [label="Handle 'How'\nQuestions"];
+        
+        display_results -> handle_why;
+        display_results -> handle_how;
+    }
+    
+    # Main flow connections
+    select -> fan_symptoms [label="Fan"];
+    select -> wash_symptoms [label="Washing Machine"];
+    select -> tv_symptoms [label="TV"];
+    
+    # All diagnosis rules connect to results
+    fan_no_power -> display_results;
+    fan_noise -> display_results;
+    fan_slow -> display_results;
+    fan_vibration -> display_results;
+    fan_overheat -> display_results;
+    
+    wash_no_start -> display_results;
+    wash_no_agitation -> display_results;
+    wash_no_drain -> display_results;
+    wash_noise -> display_results;
+    wash_overload -> display_results;
+    
+    tv_no_power -> display_results;
+    tv_no_picture -> display_results;
+    tv_no_sound -> display_results;
+    tv_distortion -> display_results;
+    tv_shutdown -> display_results;
+    
+    # Title
+    labelloc="t";
+    label="Electrical Appliance Expert System Architecture";
+    fontsize=16;
+    fontname="Arial Bold";
+}
