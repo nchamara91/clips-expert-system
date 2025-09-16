@@ -6,7 +6,7 @@
 ;; Features: Forward/Backward chaining, Why/How explanations
 ;; ================================================================
 
-
+(clear)
 
 ;; ================================================================
 ;; TEMPLATES AND DATA STRUCTURES
@@ -865,20 +865,21 @@
 ;; ================================================================
 
 (defrule handle-why-question
-    ?q <- (question (text "why") (appliance-type ?type))
-    ?diag <- (diagnosis (appliance-type ?type) (problem ?problem))
-    ?expl <- (explanation (conclusion ?problem) (rule-name ?rule-name) (reasoning ?reasoning) (evidence ?evidence))
+    (question (text "why") (appliance-type ?type))
+    (diagnosis (appliance-type ?type) (problem ?problem))
+    (explanation (conclusion ?problem) (reasoning ?reasoning) (evidence ?evidence))
     =>
-    (retract ?q)
     (printout t crlf "=== WHY EXPLANATION ===" crlf)
-    (printout t "The diagnosis of '" ?problem "' was made because the following rule was activated:" crlf crlf)
-    (printout t "  RULE: " ?rule-name crlf crlf)
-    (printout t "REASONING: " ?reasoning crlf)
-    (printout t "EVIDENCE: " ?evidence crlf)
-    (printout t "----------------------------------------" crlf)
-    (printout t "This rule was triggered based on the symptoms and data provided." crlf)
-    (printout t "You can type 'chain' to see all rules that were part of this diagnosis." crlf)
-    (assert (question (text "interaction") (appliance-type ?type) (asked no))))
+    (printout t "Question: Why was this diagnosis made?" crlf)
+    (printout t "Diagnosis: " ?problem crlf)
+    (printout t "Reasoning: " ?reasoning crlf)
+    (printout t "Evidence: " ?evidence crlf)
+    (printout t crlf "Reasoning Chain:" crlf)
+    (printout t "1. Observed symptoms triggered diagnostic rules" crlf)
+    (printout t "2. Evidence was collected through targeted questions" crlf)
+    (printout t "3. Confidence calculated based on evidence strength" crlf)
+    (printout t "4. Conclusion reached through " 
+              (if ?*bc-mode* then "backward chaining" else "forward chaining") " inference" crlf))
 
 (defrule handle-how-question
     (question (text "how") (appliance-type ?type))
@@ -946,9 +947,7 @@
             (printout t "Enter appliance type (fan/washing-machine/tv): ")
             (bind ?appliance (read))
             (assert (command backward-chain ?appliance)))
-        (case exit then 
-            (printout t "Thank you for using the Electrical Diagnosis System! Halting." crlf)
-            (halt))
+        (case exit then (printout t "Thank you for using the Electrical Diagnosis System!" crlf))
         (default (printout t "Please enter 'why', 'how', 'chain', 'backward-chain [appliance]', or 'exit'" crlf)
                 (assert (question (text "interaction") (appliance-type ?type) (asked no))))))
 
@@ -956,12 +955,8 @@
 ;; SYSTEM INITIALIZATION
 ;; ================================================================
 
-(defrule show-initial-message
-    (initial-fact)
-    =>
-    (printout t "System loaded. Type (run) to start diagnosis." crlf)
-    (printout t "Advanced Features:" crlf)
-    (printout t "- Forward Chaining: Standard symptom-driven diagnosis" crlf) 
-    (printout t "- Backward Chaining: Use 'backward-chain [appliance]' for hypothesis testing" crlf)
-    (printout t "- Explanation System: Ask 'why', 'how', or 'chain' questions" crlf)
-)
+(printout t "System loaded. Type (run) to start diagnosis." crlf)
+(printout t "Advanced Features:" crlf)
+(printout t "- Forward Chaining: Standard symptom-driven diagnosis" crlf) 
+(printout t "- Backward Chaining: Use 'backward-chain [appliance]' for hypothesis testing" crlf)
+(printout t "- Explanation System: Ask 'why', 'how', or 'chain' questions" crlf)

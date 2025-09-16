@@ -6,12 +6,14 @@
 ;; Features: Forward/Backward chaining, Why/How explanations
 ;; ================================================================
 
-
+;; Clear the environment
+(clear)
 
 ;; ================================================================
 ;; TEMPLATES AND DATA STRUCTURES
 ;; ================================================================
 
+;; Template for appliance information
 (deftemplate appliance
     (slot type (allowed-values fan washing-machine tv))
     (slot brand)
@@ -19,12 +21,14 @@
     (slot age (type INTEGER))
     (slot power-rating (type INTEGER)))
 
+;; Template for symptoms
 (deftemplate symptom
     (slot appliance-type (allowed-values fan washing-machine tv))
     (slot name)
     (slot severity (allowed-values low medium high))
     (slot observed (allowed-values yes no unknown)))
 
+;; Template for electrical measurements
 (deftemplate measurement
     (slot appliance-type (allowed-values fan washing-machine tv))
     (slot parameter (allowed-values voltage current resistance power frequency))
@@ -32,6 +36,7 @@
     (slot unit)
     (slot normal-range))
 
+;; Template for diagnosis results
 (deftemplate diagnosis
     (slot appliance-type (allowed-values fan washing-machine tv))
     (slot problem)
@@ -40,12 +45,14 @@
     (slot cost-estimate (type FLOAT))
     (slot urgency (allowed-values low medium high critical)))
 
+;; Template for explanation tracking
 (deftemplate explanation
     (slot rule-name)
     (slot conclusion)
     (slot reasoning)
     (slot evidence (type STRING)))
 
+;; Template for questions and answers
 (deftemplate question
     (slot id (type INTEGER))
     (slot text)
@@ -53,6 +60,7 @@
     (slot asked (allowed-values yes no))
     (slot answer))
 
+;; Template for hypothesis (goals to prove)
 (deftemplate hypothesis
     (slot appliance-type (allowed-values fan washing-machine tv))
     (slot problem)
@@ -60,6 +68,16 @@
     (slot confidence (type FLOAT) (range 0.0 1.0))
     (slot evidence-required))
 
+;; Template for backward chaining questions
+(deftemplate bc-question
+    (slot id (type INTEGER))
+    (slot hypothesis)
+    (slot text)
+    (slot asked (allowed-values yes no))
+    (slot answer)
+    (slot weight (type FLOAT)))
+
+;; Global variables for explanation system
 (defglobal ?*explanation-enabled* = TRUE)
 (defglobal ?*current-appliance* = nil)
 (defglobal ?*bc-mode* = FALSE)
@@ -68,6 +86,7 @@
 ;; UTILITY FUNCTIONS
 ;; ================================================================
 
+;; Function to ask user questions
 (deffunction ask-user (?question)
     (printout t ?question " (yes/no): ")
     (bind ?answer (read))
@@ -78,6 +97,7 @@
         then yes
         else no))
 
+;; Function to ask for numeric input
 (deffunction ask-number (?question ?min ?max)
     (printout t ?question " (" ?min "-" ?max "): ")
     (bind ?answer (read))
@@ -86,6 +106,7 @@
         (bind ?answer (read)))
     ?answer)
 
+;; Function to record explanation
 (deffunction record-explanation (?rule ?conclusion ?reasoning ?evidence)
     (if ?*explanation-enabled*
         then (assert (explanation
@@ -94,6 +115,7 @@
                 (reasoning ?reasoning)
                 (evidence ?evidence)))))
 
+;; Function to enable backward chaining mode
 (deffunction enable-backward-chaining ()
     (bind ?*bc-mode* TRUE)
     (printout t crlf "=== BACKWARD CHAINING MODE ENABLED ===" crlf)
@@ -103,6 +125,7 @@
 ;; INITIAL FACTS AND STARTUP
 ;; ================================================================
 
+;; Startup fact
 (deffacts initial-facts
     (start-diagnosis))
 
@@ -110,6 +133,7 @@
 ;; MAIN CONTROL RULES
 ;; ================================================================
 
+;; Rule to start the diagnosis process
 (defrule start-system
     ?start <- (start-diagnosis)
     =>
@@ -124,6 +148,7 @@
     (printout t crlf)
     (assert (select-appliance)))
 
+;; Rule to select appliance type
 (defrule select-appliance-type
     ?select <- (select-appliance)
     =>
@@ -150,12 +175,14 @@
 ;; FAN DIAGNOSIS RULES
 ;; ================================================================
 
+;; Rule to gather fan symptoms
 (defrule gather-fan-symptoms
     ?gather <- (gather-fan-symptoms)
     =>
     (retract ?gather)
     (printout t crlf "=== FAN DIAGNOSIS ===" crlf)
     
+    ;; Check common fan symptoms
     (if (eq (ask-user "Does the fan not turn on at all?") yes)
         then (assert (symptom (appliance-type fan) (name no-power) (observed yes))))
     
@@ -173,6 +200,7 @@
     
     (assert (diagnose-fan)))
 
+;; Fan Diagnosis Rule 1: No Power
 (defrule fan-no-power-diagnosis
     (appliance (type fan))
     (symptom (appliance-type fan) (name no-power) (observed yes))
@@ -214,6 +242,7 @@
                                        "Power and connections OK but fan won't start"
                                        "Motor or capacitor likely failed"))))
 
+;; Fan Diagnosis Rule 2: Unusual Noise
 (defrule fan-unusual-noise-diagnosis
     (appliance (type fan))
     (symptom (appliance-type fan) (name unusual-noise) (observed yes))
@@ -243,6 +272,7 @@
                                        "Rattling indicates loose mechanical components"
                                        "Rattling/clicking sound reported"))))
 
+;; Fan Diagnosis Rule 3: Slow Running
 (defrule fan-slow-running-diagnosis
     (appliance (type fan))
     (symptom (appliance-type fan) (name slow-running) (observed yes))
@@ -272,6 +302,7 @@
                                "Normal voltage but slow speed indicates capacitor issues"
                                (str-cat "Voltage normal (" ?voltage "V) but speed reduced"))))
 
+;; Fan Diagnosis Rule 4: Excessive Vibration
 (defrule fan-excessive-vibration-diagnosis
     (appliance (type fan))
     (symptom (appliance-type fan) (name excessive-vibration) (observed yes))
@@ -300,6 +331,7 @@
                                "Vibration without visible damage indicates imbalance"
                                "No visible damage but excessive vibration")))
 
+;; Fan Diagnosis Rule 5: Overheating
 (defrule fan-overheating-diagnosis
     (appliance (type fan))
     (symptom (appliance-type fan) (name overheating) (observed yes))
@@ -333,6 +365,7 @@
 ;; WASHING MACHINE DIAGNOSIS RULES
 ;; ================================================================
 
+;; Rule to gather washing machine symptoms
 (defrule gather-washing-machine-symptoms
     ?gather <- (gather-washing-machine-symptoms)
     =>
@@ -356,6 +389,7 @@
     
     (assert (diagnose-washing-machine)))
 
+;; Washing Machine Diagnosis Rule 1: No Start
 (defrule washing-machine-no-start-diagnosis
     (appliance (type washing-machine))
     (symptom (appliance-type washing-machine) (name no-start) (observed yes))
@@ -396,6 +430,7 @@
                                        "Power OK and safety switches OK but no start indicates control failure"
                                        "All basic checks passed but machine won't start"))))
 
+;; Washing Machine Diagnosis Rule 2: No Agitation
 (defrule washing-machine-no-agitation-diagnosis
     (appliance (type washing-machine))
     (symptom (appliance-type washing-machine) (name no-agitation) (observed yes))
@@ -425,6 +460,7 @@
                                        "Motor running but no mechanical movement indicates drive train failure"
                                        "Motor runs but agitator/drum doesn't move"))))
 
+;; Washing Machine Diagnosis Rule 3: No Drain
 (defrule washing-machine-no-drain-diagnosis
     (appliance (type washing-machine))
     (symptom (appliance-type washing-machine) (name no-drain) (observed yes))
@@ -465,6 +501,7 @@
                                        "Pump runs but doesn't drain indicates mechanical blockage"
                                        "Pump running but not draining water"))))
 
+;; Washing Machine Diagnosis Rule 4: Loud Noise
 (defrule washing-machine-loud-noise-diagnosis
     (appliance (type washing-machine))
     (symptom (appliance-type washing-machine) (name loud-noise) (observed yes))
@@ -494,6 +531,7 @@
                                        "Unlevel machine causes vibration and noise during operation"
                                        "Machine not properly leveled"))))
 
+;; Washing Machine Diagnosis Rule 5: Electrical Overload
 (defrule washing-machine-electrical-overload-diagnosis
     (appliance (type washing-machine))
     (symptom (appliance-type washing-machine) (name electrical-overload) (observed yes))
@@ -527,6 +565,7 @@
 ;; TV DIAGNOSIS RULES
 ;; ================================================================
 
+;; Rule to gather TV symptoms
 (defrule gather-tv-symptoms
     ?gather <- (gather-tv-symptoms)
     =>
@@ -550,6 +589,7 @@
     
     (assert (diagnose-tv)))
 
+;; TV Diagnosis Rule 1: No Power
 (defrule tv-no-power-diagnosis
     (appliance (type tv))
     (symptom (appliance-type tv) (name no-power) (observed yes))
@@ -590,6 +630,7 @@
                                        "External power OK but TV won't start indicates internal PSU failure"
                                        "Power available but TV internal circuits not responding"))))
 
+;; TV Diagnosis Rule 2: No Picture
 (defrule tv-no-picture-diagnosis
     (appliance (type tv))
     (symptom (appliance-type tv) (name no-picture) (observed yes))
@@ -630,6 +671,7 @@
                                "No picture or sound indicates main processing board failure"
                                "No audio or video output")))
 
+;; TV Diagnosis Rule 3: No Sound
 (defrule tv-no-sound-diagnosis
     (appliance (type tv))
     (symptom (appliance-type tv) (name no-sound) (observed yes))
@@ -670,6 +712,7 @@
                                        "No audio on any output indicates audio circuit failure"
                                        "No audio output on any connection"))))
 
+;; TV Diagnosis Rule 4: Picture Distortion
 (defrule tv-picture-distortion-diagnosis
     (appliance (type tv))
     (symptom (appliance-type tv) (name picture-distortion) (observed yes))
@@ -699,6 +742,7 @@
                                        "Flickering and color issues suggest signal processing problems"
                                        "Picture flickers or has color distortion"))))
 
+;; TV Diagnosis Rule 5: Random Shutdown
 (defrule tv-random-shutdown-diagnosis
     (appliance (type tv))
     (symptom (appliance-type tv) (name random-shutdown) (observed yes))
@@ -743,6 +787,7 @@
 ;; BACKWARD CHAINING RULES
 ;; ================================================================
 
+;; Rule to start backward chaining with hypotheses
 (defrule start-backward-chaining
     (backward-chain ?appliance)
     =>
@@ -762,6 +807,7 @@
             (assert (hypothesis (appliance-type tv) (problem "Audio circuit failure") (status active) (confidence 0.0) (evidence-required "audio-symptoms")))))
     (assert (test-hypotheses ?appliance)))
 
+;; Rule to test power supply failure hypothesis
 (defrule test-power-supply-hypothesis
     ?h <- (hypothesis (appliance-type ?type) (problem "Power supply failure") (status active))
     (test-hypotheses ?type)
@@ -787,6 +833,7 @@
                                (str-cat "Voltage test: " ?voltage-test ", Cord test: " ?cord-test ", Outlet test: " ?outlet-test))
         else (modify ?h (status disproven) (confidence ?confidence))))
 
+;; Rule to test motor failure hypothesis  
 (defrule test-motor-failure-hypothesis
     ?h <- (hypothesis (appliance-type ?type) (problem "Motor failure") (status active))
     (test-hypotheses ?type)
@@ -812,6 +859,7 @@
                                (str-cat "Motor sound: " ?motor-sound ", Heat: " ?motor-heat ", Movement: " ?movement))
         else (modify ?h (status disproven) (confidence ?confidence))))
 
+;; Rule to test display failure hypothesis (TV specific)
 (defrule test-display-failure-hypothesis
     ?h <- (hypothesis (appliance-type tv) (problem "Display failure") (status active))
     (test-hypotheses tv)
@@ -837,6 +885,7 @@
                                (str-cat "Backlight: " ?backlight ", Menu: " ?menu-display ", External: " ?external-input))
         else (modify ?h (status disproven) (confidence ?confidence))))
 
+;; Rule to summarize backward chaining results
 (defrule summarize-backward-chaining
     (test-hypotheses ?type)
     (not (hypothesis (appliance-type ?type) (status active)))
@@ -844,16 +893,19 @@
     (printout t crlf "=== BACKWARD CHAINING RESULTS ===" crlf)
     (printout t "Hypotheses tested for " ?type ":" crlf)
     
+    ;; Display proven hypotheses
     (do-for-all-facts ((?h hypothesis)) 
         (and (eq ?h:appliance-type ?type) (eq ?h:status proven))
-        (printout t "PROVEN: " ?h:problem " (Confidence: " (* ?h:confidence 100) "%)" crlf))
+        (printout t "✓ PROVEN: " ?h:problem " (Confidence: " (* ?h:confidence 100) "%)" crlf))
     
+    ;; Display disproven hypotheses    
     (do-for-all-facts ((?h hypothesis))
         (and (eq ?h:appliance-type ?type) (eq ?h:status disproven))
-        (printout t "DISPROVEN: " ?h:problem " (Confidence: " (* ?h:confidence 100) "%)" crlf))
+        (printout t "✗ DISPROVEN: " ?h:problem " (Confidence: " (* ?h:confidence 100) "%)" crlf))
         
     (printout t "Backward chaining analysis complete." crlf))
 
+;; New rule to enable backward chaining from user command
 (defrule enable-backward-chaining-mode
     (command backward-chain ?appliance)
     =>
@@ -861,25 +913,28 @@
     (assert (backward-chain ?appliance)))
 
 ;; ================================================================
-;; EXPLANATION SYSTEM RULES
+;; EXPLANATION SYSTEM RULES (Enhanced)
 ;; ================================================================
 
+;; Rule to handle "why" questions
 (defrule handle-why-question
-    ?q <- (question (text "why") (appliance-type ?type))
-    ?diag <- (diagnosis (appliance-type ?type) (problem ?problem))
-    ?expl <- (explanation (conclusion ?problem) (rule-name ?rule-name) (reasoning ?reasoning) (evidence ?evidence))
+    (question (text "why") (appliance-type ?type))
+    (diagnosis (appliance-type ?type) (problem ?problem))
+    (explanation (conclusion ?problem) (reasoning ?reasoning) (evidence ?evidence))
     =>
-    (retract ?q)
     (printout t crlf "=== WHY EXPLANATION ===" crlf)
-    (printout t "The diagnosis of '" ?problem "' was made because the following rule was activated:" crlf crlf)
-    (printout t "  RULE: " ?rule-name crlf crlf)
-    (printout t "REASONING: " ?reasoning crlf)
-    (printout t "EVIDENCE: " ?evidence crlf)
-    (printout t "----------------------------------------" crlf)
-    (printout t "This rule was triggered based on the symptoms and data provided." crlf)
-    (printout t "You can type 'chain' to see all rules that were part of this diagnosis." crlf)
-    (assert (question (text "interaction") (appliance-type ?type) (asked no))))
+    (printout t "Question: Why was this diagnosis made?" crlf)
+    (printout t "Diagnosis: " ?problem crlf)
+    (printout t "Reasoning: " ?reasoning crlf)
+    (printout t "Evidence: " ?evidence crlf)
+    (printout t crlf "Reasoning Chain:" crlf)
+    (printout t "1. Observed symptoms triggered diagnostic rules" crlf)
+    (printout t "2. Evidence was collected through targeted questions" crlf)
+    (printout t "3. Confidence calculated based on evidence strength" crlf)
+    (printout t "4. Conclusion reached through " 
+              (if ?*bc-mode* then "backward chaining" else "forward chaining") " inference" crlf))
 
+;; Rule to handle "how" questions
 (defrule handle-how-question
     (question (text "how") (appliance-type ?type))
     (diagnosis (appliance-type ?type) (problem ?problem) (solution ?solution))
@@ -892,12 +947,14 @@
     (printout t crlf "Diagnostic Method: " 
               (if ?*bc-mode* then "Hypothesis testing (backward chaining)" else "Symptom analysis (forward chaining)") crlf))
 
+;; Rule to handle chain of reasoning questions
 (defrule handle-chain-question
     (question (text "chain") (appliance-type ?type))
     =>
     (printout t crlf "=== REASONING CHAIN ===" crlf)
     (printout t "Complete diagnostic reasoning chain:" crlf crlf)
     
+    ;; Show all explanations for this appliance type
     (do-for-all-facts ((?e explanation) (?d diagnosis))
         (and (eq ?d:appliance-type ?type) (eq ?e:conclusion ?d:problem))
         (printout t "Rule: " ?e:rule-name crlf)
@@ -910,6 +967,7 @@
 ;; FINAL RESULTS AND SUMMARY RULES
 ;; ================================================================
 
+;; Rule to display diagnosis results
 (defrule display-diagnosis-results
     (or (diagnose-fan) (diagnose-washing-machine) (diagnose-tv))
     (diagnosis (appliance-type ?type) (problem ?problem) (confidence ?conf) 
@@ -932,6 +990,7 @@
     (printout t "=========================================" crlf)
     (assert (question (text "interaction") (appliance-type ?type) (asked no))))
 
+;; Rule to handle user interaction after diagnosis
 (defrule handle-user-interaction
     ?interact <- (question (text "interaction") (appliance-type ?type) (asked no))
     =>
@@ -946,9 +1005,7 @@
             (printout t "Enter appliance type (fan/washing-machine/tv): ")
             (bind ?appliance (read))
             (assert (command backward-chain ?appliance)))
-        (case exit then 
-            (printout t "Thank you for using the Electrical Diagnosis System! Halting." crlf)
-            (halt))
+        (case exit then (printout t "Thank you for using the Electrical Diagnosis System!" crlf))
         (default (printout t "Please enter 'why', 'how', 'chain', 'backward-chain [appliance]', or 'exit'" crlf)
                 (assert (question (text "interaction") (appliance-type ?type) (asked no))))))
 
@@ -956,12 +1013,9 @@
 ;; SYSTEM INITIALIZATION
 ;; ================================================================
 
-(defrule show-initial-message
-    (initial-fact)
-    =>
-    (printout t "System loaded. Type (run) to start diagnosis." crlf)
-    (printout t "Advanced Features:" crlf)
-    (printout t "- Forward Chaining: Standard symptom-driven diagnosis" crlf) 
-    (printout t "- Backward Chaining: Use 'backward-chain [appliance]' for hypothesis testing" crlf)
-    (printout t "- Explanation System: Ask 'why', 'how', or 'chain' questions" crlf)
-)
+;; Load the system and start diagnosis
+(printout t "System loaded. Type (run) to start diagnosis." crlf)
+(printout t "Advanced Features:" crlf)
+(printout t "- Forward Chaining: Standard symptom-driven diagnosis" crlf) 
+(printout t "- Backward Chaining: Use 'backward-chain [appliance]' for hypothesis testing" crlf)
+(printout t "- Explanation System: Ask 'why', 'how', or 'chain' questions" crlf)
