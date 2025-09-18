@@ -881,20 +881,34 @@
     (assert (question (text "interaction") (appliance-type ?type) (asked no))))
 
 (defrule handle-how-question
-    (question (text "how") (appliance-type ?type))
-    (diagnosis (appliance-type ?type) (problem ?problem) (solution ?solution))
+    (declare (salience 10))
+    ?q <- (question (text "how") (appliance-type ?type))
     =>
+    (retract ?q)
     (printout t crlf "=== HOW EXPLANATION ===" crlf)
     (printout t "Question: How to fix this problem?" crlf)
-    (printout t "Problem: " ?problem crlf)
-    (printout t "Solution: " ?solution crlf)
+    (do-for-all-facts ((?d diagnosis)) (eq ?d:appliance-type ?type)
+        (printout t "Problem: " ?d:problem crlf)
+        (printout t "Solution: " ?d:solution crlf))
     (printout t "This solution addresses the root cause identified through systematic diagnosis." crlf)
     (printout t crlf "Diagnostic Method: " 
-              (if ?*bc-mode* then "Hypothesis testing (backward chaining)" else "Symptom analysis (forward chaining)") crlf))
+              (if ?*bc-mode* then "Hypothesis testing (backward chaining)" else "Symptom analysis (forward chaining)") crlf)
+    (assert (cleanup-and-ask-next ?type)))
+
+(defrule cleanup-and-ask
+    (declare (salience 5))
+    ?f <- (cleanup-and-ask-next ?type)
+    =>
+    (retract ?f)
+    (do-for-all-facts ((?d diagnosis)) (eq ?d:appliance-type ?type) (retract ?d))
+    (do-for-all-facts ((?e explanation)) TRUE (retract ?e))
+    (do-for-all-facts ((?s symptom)) (eq ?s:appliance-type ?type) (retract ?s))
+    (assert (question (text "interaction") (appliance-type ?type) (asked no))))
 
 (defrule handle-chain-question
-    (question (text "chain") (appliance-type ?type))
+    ?q <- (question (text "chain") (appliance-type ?type))
     =>
+    (retract ?q)
     (printout t crlf "=== REASONING CHAIN ===" crlf)
     (printout t "Complete diagnostic reasoning chain:" crlf crlf)
     
@@ -904,7 +918,9 @@
         (printout t "Conclusion: " ?e:conclusion crlf)
         (printout t "Reasoning: " ?e:reasoning crlf)
         (printout t "Evidence: " ?e:evidence crlf)
-        (printout t "----------------------------------------" crlf)))
+        (printout t "----------------------------------------" crlf))
+    
+    (assert (question (text "interaction") (appliance-type ?type) (asked no))))
 
 ;; ================================================================
 ;; FINAL RESULTS AND SUMMARY RULES
